@@ -1,0 +1,20 @@
+production:
+  clients:
+    default:
+      uri: <%= ENV['MONGODB_URI'] || 'mongodb://hipnoticus:hipno8991@hipnoticus-mongodb:27017/localization?authSource=admin' %>
+      options:
+        server_selection_timeout: 5
+
+development:
+  clients:
+    default:
+      uri: <%= ENV['MONGODB_URI'] || 'mongodb://hipnoticus:hipno8991@hipnoticus-mongodb:27017/localization?authSource=admin' %>
+      options:
+        server_selection_timeout: 5
+
+test:
+  clients:
+    default:
+      database: localization_test
+      hosts:
+        - localhost:27017
