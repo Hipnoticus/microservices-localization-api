@@ -5,7 +5,7 @@ COPY Gemfile Gemfile.lock* ./
 RUN bundle install --without development test --jobs 4
 
 FROM ruby:3.3-alpine
-RUN apk add --no-cache libstdc++
+RUN apk add --no-cache libstdc++ tzdata
 WORKDIR /app
 COPY --from=build /usr/local/bundle /usr/local/bundle
 COPY . .
