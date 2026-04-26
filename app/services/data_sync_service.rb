@@ -17,6 +17,7 @@ class DataSyncService
   def self.sync_all
     sync_countries
     sync_brazilian_states_and_cities
+    sync_international_states
     puts "[DataSync] Sync complete at #{Time.now}"
   end
 
@@ -87,5 +88,49 @@ class DataSyncService
     end
 
     puts "[DataSync] Brazilian sync complete: #{State.where(country_code: 'BR').count} states, #{City.where(country_code: 'BR').count} cities"
+  end
+
+  # Sync states for major countries via CountriesNow API
+  # Skips Brazil (already handled by IBGE with cities)
+  PRIORITY_COUNTRIES = %w[US PT AR UY PY CL CO MX PE VE EC BO DE FR ES IT GB CA AU JP].freeze
+
+  def self.sync_international_states
+    puts '[DataSync] Syncing international states from CountriesNow API...'
+
+    response = HTTParty.post(COUNTRIESNOW_STATES_URL, timeout: 60)
+    return puts '[DataSync] Failed to fetch CountriesNow states' unless response.success?
+
+    data = JSON.parse(response.body)
+    return puts '[DataSync] CountriesNow returned error' if data['error']
+
+    entries = data['data'] || []
+    synced = 0
+
+    entries.each do |entry|
+      iso2 = entry['iso2']
+      next unless iso2 && iso2.length == 2
+      next if iso2 == 'BR' # Brazil handled by IBGE
+
+      country = Country.find_by(code: iso2)
+      next unless country
+
+      states_data = entry['states'] || []
+      next if states_data.empty?
+
+      states_data.each do |s|
+        code = s['state_code'] || s['name']&.slice(0, 5)&.upcase
+        next unless code && s['name']
+
+        State.find_or_initialize_by(code: code, country_code: iso2).tap do |state|
+          state.name = s['name']
+          state.country = country
+          state.save!
+        end
+      end
+
+      synced += 1
+    end
+
+    puts "[DataSync] International states synced for #{synced} countries (#{State.where(:country_code.ne => 'BR').count} total non-BR states)"
   end
 end
