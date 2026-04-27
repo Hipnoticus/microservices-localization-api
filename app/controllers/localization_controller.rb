@@ -8,12 +8,12 @@ class LocalizationController < Sinatra::Base
 
   before do
     content_type :json
-    headers 'Access-Control-Allow-Origin' => '*',
-            'Access-Control-Allow-Methods' => 'GET, OPTIONS',
-            'Access-Control-Allow-Headers' => 'Content-Type, Authorization'
   end
 
   options '*' do
+    headers 'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+            'Access-Control-Allow-Headers' => 'Content-Type, Authorization'
     200
   end
 
