@@ -11,7 +11,8 @@ class EurekaClient
   PORT = 3003
 
   def self.hostname
-    @hostname ||= Socket.gethostname
+    # Use container name from env or Docker hostname
+    @hostname ||= ENV.fetch('HOSTNAME_OVERRIDE', 'hipnoticus-localization-api')
   end
 
   def self.ip_address
