@@ -115,10 +115,14 @@ class DataSyncService
         code = s['state_code'] || s['iso2'] || s['name']&.slice(0, 8)&.upcase
         next unless code && s['name']
 
-        State.find_or_initialize_by(code: code, country_code: iso2).tap do |state|
-          state.name = s['name']
-          state.country = country
-          state.save!
+        begin
+          State.find_or_initialize_by(code: code, country_code: iso2).tap do |state|
+            state.name = s['name']
+            state.country = country
+            state.save!
+          end
+        rescue Mongo::Error::OperationFailure
+          # Skip duplicates silently
         end
       end
 
