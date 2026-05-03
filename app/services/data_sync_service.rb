@@ -14,7 +14,7 @@ class DataSyncService
   IBGE_CITIES_URL = 'https://servicodados.ibge.gov.br/api/v1/localidades/estados/%s/municipios?orderBy=nome'
   # Comprehensive states JSON from dr5hn GitHub (reliable, updated regularly)
   STATES_JSON_URL = 'https://raw.githubusercontent.com/dr5hn/countries-states-cities-database/master/json/states.json'
-  CITIES_JSON_URL = 'https://raw.githubusercontent.com/dr5hn/countries-states-cities-database/master/json/cities.json'
+  CITIES_JSON_URL = 'https://raw.githubusercontent.com/dr5hn/countries-states-cities-database/refs/heads/master/json/cities.json'
 
   # DF Administrative Regions (IBGE only returns Brasília as the single municipality)
   DF_ADMINISTRATIVE_REGIONS = [
