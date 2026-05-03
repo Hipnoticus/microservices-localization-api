@@ -14,11 +14,26 @@ class DataSyncService
   IBGE_CITIES_URL = 'https://servicodados.ibge.gov.br/api/v1/localidades/estados/%s/municipios?orderBy=nome'
   # Comprehensive states JSON from dr5hn GitHub (reliable, updated regularly)
   STATES_JSON_URL = 'https://raw.githubusercontent.com/dr5hn/countries-states-cities-database/master/json/states.json'
+  CITIES_JSON_URL = 'https://raw.githubusercontent.com/dr5hn/countries-states-cities-database/master/json/cities.json'
+
+  # DF Administrative Regions (IBGE only returns Brasília as the single municipality)
+  DF_ADMINISTRATIVE_REGIONS = [
+    'Brasília', 'Gama', 'Taguatinga', 'Brazlândia', 'Sobradinho', 'Planaltina',
+    'Paranoá', 'Núcleo Bandeirante', 'Ceilândia', 'Guará', 'Cruzeiro',
+    'Samambaia', 'Santa Maria', 'São Sebastião', 'Recanto das Emas',
+    'Lago Sul', 'Riacho Fundo', 'Lago Norte', 'Candangolândia',
+    'Águas Claras', 'Riacho Fundo II', 'Sudoeste/Octogonal', 'Varjão',
+    'Park Way', 'SCIA/Estrutural', 'Sobradinho II', 'Jardim Botânico',
+    'Itapoã', 'SIA', 'Vicente Pires', 'Fercal', 'Sol Nascente/Pôr do Sol',
+    'Arniqueira'
+  ].freeze
 
   def self.sync_all
     sync_countries
     sync_brazilian_states_and_cities
+    sync_df_administrative_regions
     sync_international_states
+    sync_international_cities
     puts "[DataSync] Sync complete at #{Time.now}"
   end
 
@@ -133,5 +148,59 @@ class DataSyncService
     puts "[DataSync] International states synced for #{synced_countries} countries (#{total_intl} non-BR states)"
   rescue StandardError => e
     puts "[DataSync] International sync error: #{e.message}"
+  end
+
+  def self.sync_df_administrative_regions
+    puts '[DataSync] Adding DF administrative regions...'
+    state_record = State.find_by(code: 'DF', country_code: 'BR')
+    return puts '[DataSync] DF state not found' unless state_record
+
+    count = 0
+    DF_ADMINISTRATIVE_REGIONS.each do |name|
+      City.find_or_initialize_by(name: name, state_code: 'DF', country_code: 'BR').tap do |city|
+        city.state = state_record
+        city.save!
+        count += 1
+      end
+    end
+    puts "[DataSync] DF: #{count} administrative regions synced"
+  end
+
+  def self.sync_international_cities
+    puts '[DataSync] Syncing international cities from dr5hn database...'
+
+    response = HTTParty.get(CITIES_JSON_URL, timeout: 300)
+    unless response.success?
+      puts '[DataSync] Failed to fetch cities JSON, skipping international cities sync'
+      return
+    end
+
+    all_cities = JSON.parse(response.body)
+    count = 0
+
+    all_cities.each do |c|
+      iso2 = c['country_code']
+      next unless iso2 && iso2.length == 2
+      next if iso2 == 'BR' # Brazil handled by IBGE + DF regions
+
+      state_code = c['state_code'] || c['state_id']&.to_s
+      name = c['name']
+      next unless state_code && name
+
+      begin
+        City.find_or_initialize_by(name: name, state_code: state_code, country_code: iso2).tap do |city|
+          state_record = State.find_by(code: state_code, country_code: iso2)
+          city.state = state_record if state_record
+          city.save!
+          count += 1
+        end
+      rescue Mongo::Error::OperationFailure
+        # Skip duplicates
+      end
+    end
+
+    puts "[DataSync] #{count} international cities synced"
+  rescue StandardError => e
+    puts "[DataSync] International cities sync error: #{e.message}"
   end
 end
