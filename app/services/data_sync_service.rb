@@ -14,7 +14,7 @@ class DataSyncService
   IBGE_CITIES_URL = 'https://servicodados.ibge.gov.br/api/v1/localidades/estados/%s/municipios?orderBy=nome'
   # Comprehensive states JSON from dr5hn GitHub (reliable, updated regularly)
   STATES_JSON_URL = 'https://raw.githubusercontent.com/dr5hn/countries-states-cities-database/master/json/states.json'
-  CITIES_JSON_URL = 'https://raw.githubusercontent.com/dr5hn/countries-states-cities-database/refs/heads/master/json/cities.json'
+  CITIES_JSON_URL = 'https://countriesnow.space/api/v0.1/countries'
 
   # DF Administrative Regions (IBGE only returns Brasília as the single municipality)
   DF_ADMINISTRATIVE_REGIONS = [
@@ -167,35 +167,46 @@ class DataSyncService
   end
 
   def self.sync_international_cities
-    puts '[DataSync] Syncing international cities from dr5hn database...'
+    puts '[DataSync] Syncing international cities from CountriesNow API...'
 
-    response = HTTParty.get(CITIES_JSON_URL, timeout: 300)
+    response = HTTParty.get(CITIES_JSON_URL, timeout: 60)
     unless response.success?
-      puts '[DataSync] Failed to fetch cities JSON, skipping international cities sync'
+      puts "[DataSync] Failed to fetch cities from CountriesNow: #{response.code}"
       return
     end
 
-    all_cities = JSON.parse(response.body)
+    data = JSON.parse(response.body)
+    countries_data = data['data']
+    return puts '[DataSync] No data in CountriesNow response' unless countries_data
+
     count = 0
+    countries_data.each do |entry|
+      country_name = entry['country']
+      cities_list = entry['cities'] || []
+      next if cities_list.empty?
 
-    all_cities.each do |c|
-      iso2 = c['country_code']
-      next unless iso2 && iso2.length == 2
-      next if iso2 == 'BR' # Brazil handled by IBGE + DF regions
+      # Find country by name
+      country = Country.where(name: /^#{Regexp.escape(country_name)}$/i).first
+      next unless country
+      next if country.code == 'BR' # Brazil handled by IBGE + DF regions
 
-      state_code = c['state_code'] || c['state_id']&.to_s
-      name = c['name']
-      next unless state_code && name
+      # Get the first state for this country as fallback (countriesnow doesn't provide state per city)
+      default_state = State.where(country_code: country.code).first
+      state_code = default_state&.code || 'N/A'
 
-      begin
-        City.find_or_initialize_by(name: name, state_code: state_code, country_code: iso2).tap do |city|
-          state_record = State.find_by(code: state_code, country_code: iso2)
-          city.state = state_record if state_record
-          city.save!
-          count += 1
+      cities_list.each do |city_name|
+        next if city_name.nil? || city_name.strip.empty?
+
+        begin
+          City.find_or_initialize_by(name: city_name.strip, country_code: country.code).tap do |city|
+            city.state_code ||= state_code
+            city.state = default_state if default_state && city.state.nil?
+            city.save!
+            count += 1
+          end
+        rescue Mongo::Error::OperationFailure
+          # Skip duplicates
         end
-      rescue Mongo::Error::OperationFailure
-        # Skip duplicates
       end
     end
 

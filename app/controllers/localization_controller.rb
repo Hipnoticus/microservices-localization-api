@@ -49,11 +49,22 @@ class LocalizationController < Sinatra::Base
 
   # GET /states/:country_code/:state_code/cities
   get '/states/:country_code/:state_code/cities' do
-    cities = City.where(country_code: params[:country_code].upcase,
-                        state_code: params[:state_code].upcase)
+    country_code = params[:country_code].upcase
+    state_code = params[:state_code].upcase
+
+    cities = City.where(country_code: country_code, state_code: state_code)
                  .order_by(name: :asc).map do |c|
       { name: c.name, stateCode: c.state_code, countryCode: c.country_code }
     end
+
+    # If no cities found for this state, try returning all cities for the country
+    if cities.empty?
+      cities = City.where(country_code: country_code)
+                   .order_by(name: :asc).map do |c|
+        { name: c.name, stateCode: c.state_code, countryCode: c.country_code }
+      end
+    end
+
     json cities
   end
 
