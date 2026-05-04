@@ -9,6 +9,6 @@ RUN apk add --no-cache libstdc++ tzdata
 WORKDIR /app
 COPY --from=build /usr/local/bundle /usr/local/bundle
 COPY . .
-EXPOSE 3003
+EXPOSE 4001
 ENV RACK_ENV=production
-CMD ["bundle", "exec", "puma", "-p", "3003", "-e", "production"]
+CMD ["bundle", "exec", "puma", "-p", "4001", "-e", "production"]

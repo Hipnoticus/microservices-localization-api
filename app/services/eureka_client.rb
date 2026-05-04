@@ -8,7 +8,7 @@ require 'socket'
 class EurekaClient
   EUREKA_URL = ENV.fetch('EUREKA_URL', 'http://discUser:discPassword@hipnoticus-discovery-api:8082/eureka')
   APP_NAME = 'LOCALIZATION-SERVICE'
-  PORT = 3003
+  PORT = 4001
 
   def self.hostname
     # Use container name from env or Docker hostname

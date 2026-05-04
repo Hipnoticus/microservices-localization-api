@@ -29,7 +29,7 @@ International country, state, and city data service for the Hipnoticus platform.
 ## Development
 ```bash
 bundle install
-RACK_ENV=development bundle exec puma -p 3003
+RACK_ENV=development bundle exec puma -p 4001
 ```
 
 ## Testing
@@ -40,7 +40,7 @@ bundle exec rspec
 ## Docker
 ```bash
 docker build -t localization-api .
-docker run -p 3003:3003 -e MONGODB_URI=mongodb://... localization-api
+docker run -p 4001:4001 -e MONGODB_URI=mongodb://... localization-api
 ```
 
 ## Architecture
