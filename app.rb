@@ -13,11 +13,15 @@ require_relative 'app/models/state'
 require_relative 'app/models/city'
 
 # Load services
+require_relative 'app/services/config_client'
 require_relative 'app/services/data_sync_service'
 require_relative 'app/services/eureka_client'
 
 # Load controller
 require_relative 'app/controllers/localization_controller'
+
+# Load configuration from Spring Cloud Config Server
+$cloud_config = ConfigClient.load
 
 # Create indexes
 Country.create_indexes
