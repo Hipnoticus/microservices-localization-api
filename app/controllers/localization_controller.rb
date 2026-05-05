@@ -74,6 +74,69 @@ class LocalizationController < Sinatra::Base
            countries: Country.count, states: State.count, cities: City.count })
   end
 
+  # GET /openapi.json — OpenAPI 3.0 specification
+  get '/openapi.json' do
+    json({
+      openapi: '3.0.3',
+      info: {
+        title: 'Localization Service API',
+        description: 'Countries, states, and cities data service with automatic sync from REST Countries, IBGE, and CountriesNow APIs.',
+        version: '1.0.0'
+      },
+      servers: [
+        { url: '/localization-service', description: 'API Gateway' }
+      ],
+      paths: {
+        '/countries' => {
+          get: {
+            summary: 'List all countries',
+            responses: { '200' => { description: 'Array of countries' } }
+          }
+        },
+        '/countries/{code}' => {
+          get: {
+            summary: 'Get country by code',
+            parameters: [{ name: 'code', in: 'path', required: true, schema: { type: 'string' } }],
+            responses: {
+              '200' => { description: 'Country details' },
+              '404' => { description: 'Country not found' }
+            }
+          }
+        },
+        '/countries/{code}/states' => {
+          get: {
+            summary: 'List states for a country',
+            parameters: [{ name: 'code', in: 'path', required: true, schema: { type: 'string' } }],
+            responses: { '200' => { description: 'Array of states' } }
+          }
+        },
+        '/states/{countryCode}/{stateCode}/cities' => {
+          get: {
+            summary: 'List cities for a state',
+            parameters: [
+              { name: 'countryCode', in: 'path', required: true, schema: { type: 'string' } },
+              { name: 'stateCode', in: 'path', required: true, schema: { type: 'string' } }
+            ],
+            responses: { '200' => { description: 'Array of cities' } }
+          }
+        },
+        '/health' => {
+          get: {
+            summary: 'Health check',
+            responses: { '200' => { description: 'Service status with data counts' } }
+          }
+        },
+        '/sync' => {
+          post: {
+            summary: 'Trigger data sync',
+            description: 'Starts background sync of countries, states, and cities from external APIs.',
+            responses: { '200' => { description: 'Sync started' } }
+          }
+        }
+      }
+    })
+  end
+
   # POST /sync (trigger manual sync)
   post '/sync' do
     Thread.new { DataSyncService.sync_all }
