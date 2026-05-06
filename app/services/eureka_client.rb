@@ -6,7 +6,7 @@ require 'socket'
 # Registers this service with Netflix Eureka for Spring Cloud service discovery.
 # Sends heartbeats every 30 seconds to maintain registration.
 class EurekaClient
-  EUREKA_URL = ENV.fetch('EUREKA_URL', 'http://discUser:discPassword@hipnoticus-discovery-api:8082/eureka')
+  EUREKA_URL = ENV.fetch('EUREKA_URL', 'http://discUser:discPassword@hipnoticus-discovery-api:8082/eureka').chomp('/')
   APP_NAME = 'LOCALIZATION-SERVICE'
   PORT = 4001
 
